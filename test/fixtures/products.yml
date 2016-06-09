@@ -1,0 +1,11 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  name: MyString
+  released_on: 2016-06-09
+  price: 9.99
+
+two:
+  name: MyString
+  released_on: 2016-06-09
+  price: 9.99
