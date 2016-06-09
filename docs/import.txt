@@ -1,49 +1,80 @@
 Import Records from CSV and Excel in Rails 5
 
+Add:
+
+```ruby
 gem 'roo'
+```
 
-bundle
+to Gemfile and run bundle. In products/index.html.erb, add file upload field:
 
-In products/index.html.erb:
-
+```rhtml
 <h2>Import Products</h2>
-
 <%= form_tag import_products_path, multipart: true do %>
   <%= file_field_tag :file %>
   <%= submit_tag "Import" %>
 <% end %>
+```
 
+Define route to import data from the uploaded file.
 
+```ruby
 resources :products do
   collection do
     post :import
   end
 end
+```
 
+This defines the following route.
+
+```
 import_products POST   /products/import(.:format)   products#import
+```
 
+Implement import action in products controller.
 
-Products controller.
-
+```ruby
 def import
   Product.import(params[:file])
   
   redirect_to root_url, notice: 'Products imported.'
 end
+```
 
+This gives the error:
+
+```
 uninitialized constant Roo::Csv
+```
 
-when ".csv" then Roo::CSV.new(file.path, nil, :ignore)
+Change:
 
+```ruby
+Roo::Csv
+```
 
+to 
+
+```ruby
+Roo::CSV
+```
+
+In product model, change:
+
+```ruby
 spreadsheet = Roo::Spreadsheet.open(file.path)
+```
 
-ActiveRecord::NotFound exception
+We get the error, ActiveRecord::NotFound exception. Change the import line that finds a record like this:
 
+```ruby
 product = find_by(id: row["id"]) || new
+```
 
-The entire method looks like this:
+The entire method now looks like this:
 
+```ruby
 def self.import(file)
   spreadsheet = Roo::Spreadsheet.open(file.path)
   header = spreadsheet.row(1)
@@ -54,13 +85,11 @@ def self.import(file)
     product.save!
   end
 end  
+```
 
-This workbook contains features that will not work or may be removed if you save it in the selected file format. Do you want to continue?
+Make sure to name the headers have the same value as the column name in the database, so the header should be id, name and `released_on`. Delete this:
 
-Make sure to name the headers have the same value as the column name in the database, so the header should be id, name and released_on.
-
-Delete this:
-
+```ruby
 def self.open_spreadsheet(file)
   case File.extname(file.original_filename)
   when ".csv" then Roo::CSV.new(file.path, nil, :ignore)
@@ -69,7 +98,13 @@ def self.open_spreadsheet(file)
   else raise "Unknown file type: #{file.original_filename}"
   end
 end
+```
+
+This uses [Roo Gem](https://github.com/roo-rb/roo 'Roo Gem') version 2.4.0. The railscast uses Roo gem 1.10.1. You can download the code from [exp](https://github.com/bparanj/exp 'Export').
 
 
+```
+when ".csv" then Roo::CSV.new(file.path, nil, :ignore)
+```
 
 

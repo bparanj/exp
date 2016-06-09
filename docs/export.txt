@@ -1,29 +1,56 @@
 Exporting Records in CSV and Excel Formats in Rails 5
 
+Create the product model.
+
+```
 rails g model product name released_on:date price:decimal
+```
 
+Specify the precision and scale for the price column in the migration file.
+
+```ruby
 t.decimal :price, :precision => 2, :scale => 8
+```
 
+Migrate the database.
+
+```
 rails db:migrate
+```
 
-Copy the seed data to seeds.rb. 
+Copy the seed data to seeds.rb. Populate the database.
 
+```
 rails db:seed
+```
 
+Create a products controller.
+
+```
 rails g controller products
+```
 
+Retrieve products in the index action.
+
+```ruby
 def index
   @products = Product.order(:name)
 end
+```
 
+Define the resources in the routes.rb.
+
+```ruby
 Rails.application.routes.draw do
   resources :products
   
   root to: 'products#index'
 end
+```
 
 Create layout.css with css shown in the github code download link. Add:
 
+```css
 table td, table th {
   padding-right: 20px;
   padding-bottom: 5px;
@@ -32,26 +59,35 @@ table td, table th {
     text-align: right;
   }
 }
+```
 
-to products.scss. Create index.html.erb:
+to products.scss. Create products/index.html.erb:
 
+```rhtml
 <h1>Products</h1>
-
 <table id="products">
   <tr>
     <th>Product Name</th>
     <th>Release Date</th>
     <th>Price</th>
   </tr>
-
 <%= render @products %>
-
 </table>
+```
 
 Create product partial, `_product.html.erb`:
 
+```rhtml
+<tr>
+  <td><%= product.name %></td>
+  <td><%= product.released_on.strftime("%B %e, %Y") %></td>
+  <td><%= number_to_currency(product.price) %></td>
+</tr>
+```
+
 Replace the body section of the layout file:
 
+```rhtml
 <body>
   <div id="container">
     <% flash.each do |name, msg| %>
@@ -60,27 +96,35 @@ Replace the body section of the layout file:
     <%= yield %>
   </div>
 </body>
+```
 
 You will now be able to view list of products in the home page.
 
+## Export Data
+
 Add download link to CSV and Excel in products index page.
 
+```rhtml
 <p>
   Download:
   <%= link_to "CSV", products_path(format: "csv") %> |
   <%= link_to "Excel", products_path(format: "xls") %>
 </p>
+```
 
 Change the index action.
 
+```ruby
 respond_to do |format|
   format.html
   format.csv { send_data @products.to_csv }
   format.xls 
 end
+```
 
 Add the converter method to product model.
 
+```ruby
 def self.to_csv(options = {})
   CSV.generate(options) do |csv|
     csv << column_names
@@ -89,39 +133,54 @@ def self.to_csv(options = {})
     end
   end
 end
+```
 
-Click on the download link.
+Click on the download link. You will get the error:
 
+```
 To respond to a custom format, register it as a MIME type first: http://guides.rubyonrails.org/action_controller_overview.html#restful-downloads. If you meant to respond to a variant like :tablet or :phone, not a custom format, be sure to nest your variant response within a format response: format.html { |html| html.tablet { ... } }
+```
 
-config/initializers/mime_types.rb
+In `config/initializers/mime_types.rb`, add:
 
+```ruby
 Mime::Type.register "application/xls", :xls
+```
 
-Restart the server. Click on download link again.
+Restart the server. Click on download link again. You will get the error:
 
+```
 uninitialized constant Product::CSV
+```
 
+Add the require statement:
+
+```ruby
 require 'csv'
+```
 
-in product model.
+in product model. Let's experiment in the rails console. We can get the list of column names for a model like this:
 
-In rails console.
-
+```ruby
 Product.column_names
  => ["id", "name", "released_on", "price", "created_at", "updated_at"]
+```
 
-rails c
-Loading development environment (Rails 5.0.0.rc1)
-> p = Product.first
+We can retrieve the values of a given record like this:
+
+```ruby
+p = Product.first
   Product Load (0.1ms)  SELECT  "products".* FROM "products" ORDER BY "products"."id" ASC LIMIT ?  [["LIMIT", 1]]
  => #<Product id: 1, name: "Settlers of Catan", released_on: "2016-04-15", price: #<BigDecimal:7fada51e1018,'0.35E2',9(18)>, created_at: "2016-06-09 20:16:29", updated_at: "2016-06-09 20:16:29">
 > p.attributes
  => {"id"=>1, "name"=>"Settlers of Catan", "released_on"=>Fri, 15 Apr 2016, "price"=>#<BigDecimal:7fada51e1018,'0.35E2',9(18)>, "created_at"=>Thu, 09 Jun 2016 20:16:29 UTC +00:00, "updated_at"=>Thu, 09 Jun 2016 20:16:29 UTC +00:00}
 > p.attributes.values
  => [1, "Settlers of Catan", Fri, 15 Apr 2016, #<BigDecimal:7fada51e1018,'0.35E2',9(18)>, Thu, 09 Jun 2016 20:16:29 UTC +00:00, Thu, 09 Jun 2016 20:16:29 UTC +00:00]
-> 
+```
 
+We can now implement the `to_csv` method in product model.
+
+```ruby
 def self.to_csv(options = {})
   CSV.generate(options) do |csv|
     csv << column_names
@@ -131,11 +190,15 @@ def self.to_csv(options = {})
     end
   end
 end
+```
 
 Since we are getting all the columns for this product, we retrieve the values for all the attributes of a given product. You will now be able to download the csv file.
 
-Let's say you want to filter out created_at and updated_at fields, we can do this:
+### Exporting Specified Columns
 
+Let's say you want to filter out `created_at` and `updated_at` fields, we can do it like this:
+
+```ruby
 def self.to_csv(options = {})
   desired_columns = ["id", "name", "released_on", "price"]
   CSV.generate(options) do |csv|
@@ -145,9 +208,11 @@ def self.to_csv(options = {})
     end
   end
 end
+```
 
 Create index.xls.erb with:
 
+```rhtml
 <?xml version="1.0"?>
 <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
   xmlns:o="urn:schemas-microsoft-com:office:office"
@@ -173,9 +238,9 @@ Create index.xls.erb with:
     </Table>
   </Worksheet>
 </Workbook>
+```
 
-Click on Excel download link. You will be able to download and view the excel spreadsheet.
+Click on Excel download link. You will be able to download and view the excel spreadsheet. You can download the code from [exp](https://github.com/bparanj/exp 'Export').
+
 
 http://railscasts.com/episodes/362-exporting-csv-and-excel
-
-
