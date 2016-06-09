@@ -1,0 +1,75 @@
+Import Records from CSV and Excel in Rails 5
+
+gem 'roo'
+
+bundle
+
+In products/index.html.erb:
+
+<h2>Import Products</h2>
+
+<%= form_tag import_products_path, multipart: true do %>
+  <%= file_field_tag :file %>
+  <%= submit_tag "Import" %>
+<% end %>
+
+
+resources :products do
+  collection do
+    post :import
+  end
+end
+
+import_products POST   /products/import(.:format)   products#import
+
+
+Products controller.
+
+def import
+  Product.import(params[:file])
+  
+  redirect_to root_url, notice: 'Products imported.'
+end
+
+uninitialized constant Roo::Csv
+
+when ".csv" then Roo::CSV.new(file.path, nil, :ignore)
+
+
+spreadsheet = Roo::Spreadsheet.open(file.path)
+
+ActiveRecord::NotFound exception
+
+product = find_by(id: row["id"]) || new
+
+The entire method looks like this:
+
+def self.import(file)
+  spreadsheet = Roo::Spreadsheet.open(file.path)
+  header = spreadsheet.row(1)
+  (2..spreadsheet.last_row).each do |i|
+    row = Hash[[header, spreadsheet.row(i)].transpose]
+    product = find_by(id: row["id"]) || new
+    product.attributes = row.to_hash
+    product.save!
+  end
+end  
+
+This workbook contains features that will not work or may be removed if you save it in the selected file format. Do you want to continue?
+
+Make sure to name the headers have the same value as the column name in the database, so the header should be id, name and released_on.
+
+Delete this:
+
+def self.open_spreadsheet(file)
+  case File.extname(file.original_filename)
+  when ".csv" then Roo::CSV.new(file.path, nil, :ignore)
+  when ".xls" then Roo::Excel.new(file.path, nil, :ignore)
+  when ".xlsx" then Roo::Excelx.new(file.path, nil, :ignore)
+  else raise "Unknown file type: #{file.original_filename}"
+  end
+end
+
+
+
+

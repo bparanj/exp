@@ -1,3 +1,5 @@
+Exporting Records in CSV and Excel Formats in Rails 5
+
 rails g model product name released_on:date price:decimal
 
 t.decimal :price, :precision => 2, :scale => 8
