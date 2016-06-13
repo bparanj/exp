@@ -1,0 +1,141 @@
+
+
+
+```
+rails g controller product_imports new
+```
+
+```
+class ProductImportsController < ApplicationController
+  def new
+    @product_import = ProductImport.new
+  end
+
+  def create
+    @product_import = ProductImport.new(params[:product_import])
+    if @product_import.save
+      redirect_to root_url, notice: "Imported products successfully."
+    else
+      render :new
+    end
+  end
+end
+```
+
+```
+class ProductImport
+  include ActiveModel::Model
+  attr_accessor :file
+
+  def initialize(attributes = {})
+    attributes.each { |name, value| send("#{name}=", value) }
+  end
+
+  def persisted?
+    false
+  end
+
+  def save
+    if imported_products.map(&:valid?).all?
+      imported_products.each(&:save!)
+      true
+    else
+      imported_products.each_with_index do |product, index|
+        product.errors.full_messages.each do |message|
+          errors.add :base, "Row #{index+2}: #{message}"
+        end
+      end
+      false
+    end
+  end
+
+  def imported_products
+    @imported_products ||= load_imported_products
+  end
+
+  def load_imported_products
+    spreadsheet = Roo::Spreadsheet.open(file.path)
+    header = spreadsheet.row(1)
+    (2..spreadsheet.last_row).each do |i|
+      row = Hash[[header, spreadsheet.row(i)].transpose]
+      product = Product.find_by(id: row["id"]) || Product.new
+      product.attributes = row.to_hash
+      product
+    end    
+  end
+end
+```
+
+```
+resources :product_imports
+```
+
+product_imports/new.html.erb
+
+```
+<h1>Product Import</h1>
+
+<p>A CSV or Excel file can be used to import records. The first row should be the column name. The following columns are allowed.</p>
+
+<ul>
+  <% Product.columns.each do |column| %>
+    <% if column.name.in? ["id", "name", "released_on", "price"] %>
+      <li>
+        <strong><%= column.name %></strong> -
+        <%= column.type.to_s.titleize %> type
+      </li>
+    <% end %>
+  <% end %>
+</ul>
+
+<p>If an <strong>id</strong> is supplied it will update the matching record instead of creating a new one.</p>
+
+<%= form_for @product_import do |f| %>
+  <% if @product_import.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@product_import.errors.count, "error") %> prohibited this import from completing:</h2>
+      <ul>
+      <% @product_import.errors.full_messages.each do |msg| %>
+        <li><%= msg %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="field">
+    <%= f.file_field :file %>
+  </div>
+  <div class="buttons"><%= f.submit "Import" %></div>
+<% end %>
+```
+
+The column names are hard-coded in the view because, if we do:
+
+```
+Product.accessible_attributes
+```
+
+We will get this error:
+
+```
+NoMethodError: undefined method `accessible_attributes' for Product (call 'Product.connection' to establish a connection):Class
+Did you mean?  accepts_nested_attributes_for
+```
+
+http://localhost:3000/product_imports/new
+
+You can now import a CSV file that has valid records.
+
+Add:
+
+validates_presence_of :price
+
+to product model. Make the price value blank and import a csv file. You will get the validation error:
+
+```
+2 errors prohibited this import from completing:
+    Row 2: Price can't be blank
+    Row 3: Price can't be blank
+```
+
+

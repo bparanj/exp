@@ -1,6 +1,7 @@
 require 'csv'
 
 class Product < ApplicationRecord
+  validates_presence_of :price
   
   def self.to_csv(options = {})
     desired_columns = ["id", "name", "released_on", "price"]
