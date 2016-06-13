@@ -1,9 +1,5 @@
 class ProductImport
   include ActiveModel::Model
-  # extend ActiveModel::Naming
-  # include ActiveModel::Conversion
-  # include ActiveModel::Validations
-
   attr_accessor :file
 
   def initialize(attributes = {})

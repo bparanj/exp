@@ -1,11 +1,14 @@
+Validation of CSV Records for Importer in Rails 5
 
-
+Create a new `product_imports` controller with new action.
 
 ```
 rails g controller product_imports new
 ```
 
-```
+The new and create action is implemented as follows:
+
+```ruby
 class ProductImportsController < ApplicationController
   def new
     @product_import = ProductImport.new
@@ -22,7 +25,9 @@ class ProductImportsController < ApplicationController
 end
 ```
 
-```
+The ProductImport class is implemented as follows:
+
+```ruby
 class ProductImport
   include ActiveModel::Model
   attr_accessor :file
@@ -66,15 +71,16 @@ class ProductImport
 end
 ```
 
-```
+Define the routes for the `product_imports` resource.
+
+```ruby
 resources :product_imports
 ```
 
-product_imports/new.html.erb
+Create the `product_imports/new.html.erb` view:
 
-```
+```rhtml
 <h1>Product Import</h1>
-
 <p>A CSV or Excel file can be used to import records. The first row should be the column name. The following columns are allowed.</p>
 
 <ul>
@@ -109,9 +115,9 @@ product_imports/new.html.erb
 <% end %>
 ```
 
-The column names are hard-coded in the view because, if we do:
+The column names are hard-coded in the view, because if we do:
 
-```
+```ruby
 Product.accessible_attributes
 ```
 
@@ -122,13 +128,11 @@ NoMethodError: undefined method `accessible_attributes' for Product (call 'Produ
 Did you mean?  accepts_nested_attributes_for
 ```
 
-http://localhost:3000/product_imports/new
+Browse to `http://localhost:3000/product_imports/new`. You can now import a CSV file that has valid records. Add:
 
-You can now import a CSV file that has valid records.
-
-Add:
-
+```ruby
 validates_presence_of :price
+```
 
 to product model. Make the price value blank and import a csv file. You will get the validation error:
 
@@ -138,4 +142,6 @@ to product model. Make the price value blank and import a csv file. You will get
     Row 3: Price can't be blank
 ```
 
+## References
 
+[ActiveModel Rails API](http://api.rubyonrails.org/classes/ActiveModel/Model.html 'ActiveModel Rails API')
